@@ -34,6 +34,7 @@ from lms.djangoapps.instructor_task.config.waffle import (
 )
 from lms.djangoapps.teams.models import CourseTeamMembership
 from lms.djangoapps.verify_student.services import IDVerificationService
+from openedx.core.lib.cache_utils import get_cache
 from openedx.core.djangoapps.content.block_structure.api import get_course_in_cache
 from openedx.core.djangoapps.course_groups.cohorts import bulk_cache_cohorts, get_cohort, is_course_cohorted
 from openedx.core.djangoapps.user_api.course_tag.api import BulkCourseTags
@@ -458,6 +459,10 @@ class CourseGradeReport(object):
         for users in self._batch_users(context):
             users = [u for u in users if u is not None]
             yield self._rows_for_users(context, users)
+            # Clear the CourseEnrollment caches after each batch of users has been processed
+            get_cache('get_enrollment').clear()
+            get_cache(CourseEnrollment.MODE_CACHE_NAMESPACE).clear()
+
 
     def _compile(self, context, batched_rows):
         """
@@ -824,6 +829,9 @@ class ProblemGradeReport(GradeReportBase):
         """
         for users in self._batch_users(context):
             yield self._rows_for_users(context, users)
+            # Clear the CourseEnrollment caches after each batch of users has been processed
+            get_cache('get_enrollment').clear()
+            get_cache(CourseEnrollment.MODE_CACHE_NAMESPACE).clear()
 
 
 class ProblemResponses(object):
